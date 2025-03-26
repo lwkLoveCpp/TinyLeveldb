@@ -55,4 +55,15 @@ class coding{
              (static_cast<uint64_t>(buffer[6]) << 48) |
              (static_cast<uint64_t>(buffer[7]) << 56);
     }
+    static void PutFixed32(std::string* dst, uint32_t value) {
+      char buf[sizeof(value)];
+      EncodeFixed32(buf, value);
+      dst->append(buf, sizeof(buf));
+    }
+    
+    static void PutFixed64(std::string* dst, uint64_t value) {
+      char buf[sizeof(value)];
+      EncodeFixed64(buf, value);
+      dst->append(buf, sizeof(buf));
+    }
 };

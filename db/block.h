@@ -4,6 +4,7 @@
 #include <cstdint>
 #include "coding.h"
 #include "iterator.h"
+#include "env.h"
 using namespace std;
 static int groupSize = 20;
 
@@ -75,7 +76,7 @@ public:
         }   
     }
     //用于block中entry数量到达限定值后调用，给block的末尾加上restarts数组
-    string Finish(){
+    slice Finish(){
         for(auto restart : restarts_){
             char buf[4];
             coding::EncodeFixed32(buf,restart);
@@ -85,9 +86,24 @@ public:
         coding::EncodeFixed32(buf,restarts_.size());
         buffer.append(buf);
         finished = true;
-        return buffer;
-
+        return slice(buffer);
     }
+    size_t CurrentSizeEstimate() const {
+        return (buffer.size() +                       // Raw data buffer
+                restarts_.size() * sizeof(uint32_t) +  // Restart array
+                sizeof(uint32_t));                     // Restart array length
+    }
+    void Reset(){
+        buffer.clear();
+        last_key.clear();
+        restarts_.clear();
+        counter = 0;
+        finished = false;
+    }
+    bool Empty(){
+        return buffer.size()==0;
+    }
+      
     private:
     string last_key;
     string buffer;
@@ -214,3 +230,30 @@ private:
     string value_;
     int size;
 };
+class BlockHandle {
+    public:
+     // Maximum encoding length of a BlockHandle
+     enum { kMaxEncodedLength = 10 + 10 };
+   
+     // The offset of the block in the file.
+     uint64_t offset() const { return offset_; }
+     void set_offset(uint64_t offset) { offset_ = offset; }
+   
+     // The size of the stored block
+     uint64_t size() const { return size_; }
+     void set_size(uint64_t size) { size_ = size; }
+   
+     void EncodeTo(std::string* dst) const{
+        coding::PutFixed64(dst,offset_);
+        coding::PutFixed64(dst,size_);
+     }
+     Status DecodeFrom(slice* input){
+        offset_ = coding::DecodeFixed64(input->data_);
+        size_ = coding::DecodeFixed64(input->data_ + 8);
+     }
+   
+    private:
+     uint64_t offset_;
+     uint64_t size_;
+   };
+   

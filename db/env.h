@@ -19,9 +19,12 @@ public:
     slice():data_(nullptr),size_(0){}
     slice(const char* data,size_t size):data_(data),size_(size){}
       // Intentionally copyable.
+    slice(std::string &str):data_(str.data()),size_(str.size()){}
     slice(const slice&) = default;
     slice& operator=(const slice&) = default;
-
+    char operator[](size_t n) const {
+        return data_[n];
+      }
     int size() const {return size_;}
     const char* data() const {
         return data_;
